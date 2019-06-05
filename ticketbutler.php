@@ -111,18 +111,17 @@ class TicketButler extends Module {
         // Get order from $params and relevant objects
         $order = $params['order'];
         $products = $order->getProducts(); 
-        $customer new Customer( $order->id_customer );
+        $customer = new Customer( $order->id_customer );
 
         // Build variables for cURL request. Ordered by relevance
-        $api_endpoint =
-        $auth_token =
-        $event_id
-        $customer_id
+        $api_endpoint = '';
+        $auth_token = '';
+        $event_id = '';
         $first_name = $customer->firstname;
         $last_name = $customer->lastname;
         $email = $customer ->email;
-        $ticket_id
-        $amount
+        $ticket_id = '';
+        $amount = '';
         $id_order = $order->id_order;
         
         $curl = curl_init();
