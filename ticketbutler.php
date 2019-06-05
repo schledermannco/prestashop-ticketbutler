@@ -107,8 +107,52 @@ class TicketButler extends Module {
 
     public function hookActionPaymentConfirmation($params)
     {
-     
-     // Our API code here
+        
+        // Get order from $params and relevant objects
+        $order = $params['order'];
+        $products = $order->getProducts(); 
+        $customer new Customer( $order->id_customer );
+
+        // Build variables for cURL request. Ordered by relevance
+        $api_endpoint =
+        $auth_token =
+        $event_id
+        $customer_id
+        $first_name = $customer->firstname;
+        $last_name = $customer->lastname;
+        $email = $customer ->email;
+        $ticket_id
+        $amount
+        $id_order = $order->id_order;
+        
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+        CURLOPT_URL => "$api_endpoint",
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => "",
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => "POST",
+        CURLOPT_POSTFIELDS => "{\n  \"event\":\"$event_id\",\n  \"address\": {\n    \"first_name\": \"$first_name\", \n    \"last_name\": \"$last_name\", \n    \"email\": \"$email\",\n    },\n  \"ticket_types\": [\n    { \n      \"uuid\": \"$ticket_id\",\t\n      \"amount\": $amount\n    }\n  ],\n  \"external_order_id\": \"$id_order\"\n}",
+        CURLOPT_HTTPHEADER => array(
+            "Authorization: $auth_token",
+            "Content-Type: application/json",
+            "cache-control: no-cache"
+        ),
+        ));
+        
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+        
+        curl_close($curl);
+        
+        if ($err) {
+        echo "cURL Error #:" . $err;
+        } else {
+        echo $response;
+        }
     }
  
     /**
