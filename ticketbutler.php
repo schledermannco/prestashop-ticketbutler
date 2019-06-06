@@ -54,7 +54,7 @@ class TicketButler extends Module {
                 //Register hooks here
                 || ! $this->registerHook('actionPaymentConfirmation')
                 || ! $this->registerHook('displayAdminProductsExtra')
-|| !Configuration::updateValue('ticketbutler_api', 'api')
+                || !Configuration::updateValue('ticketbutler_api', 'api')
                 || !Configuration::updateValue('ticketbutler_token', 'token')
                 
         ) {
@@ -109,36 +109,75 @@ class TicketButler extends Module {
     {
         
         // Get order from $params and relevant objects
-        $order = $params['order'];
-        $products = $order->getProducts(); 
-        $customer = new Customer( $order->id_customer );
 
-        // Build variables for cURL request. Ordered by relevance
-        $api_endpoint = '';
-        $auth_token = '';
-        $event_id = '';
-        $first_name = $customer->firstname;
-        $last_name = $customer->lastname;
-        $email = $customer ->email;
-        $ticket_id = '';
-        $amount = '';
-        $id_order = $order->id_order;
-        
+        $order_id = $params['id_order'];
+
+        $order  = new Order($order_id);
+
+        $api_endpoint = Configuration::get('ticketbutler_api');
+
+        $auth_token = Configuration::get('ticketbutler_token');
+
+        $curl_error_key = false;
+
+
+         if (Validate::isLoadedObject($order) && $order->id_customer == $this->context->customer->id) {
+
+             $products = $order->getProducts(); 
+             $customer = new Customer( $order->id_customer );
+         
+             $first_name = $customer->firstname; 
+             $last_name = $customer->lastname;
+             $email = $customer->email;
+
+             foreach($products as $product){
+ 
+
+                 $event_id = $product['tbeventid'];
+                 $ticket_id = $product['tbticketid'];
+                 $amount = $product['product_quantity'];
+
+
+                 if((isset($event_id) && !empty($event_id)) && (isset($ticket_id) && !empty($ticket_id))){
+
+                 $payload =   array ( 
+                    'event' => $event_id,
+                    'address' => 
+                    array (
+                        'first_name' => $first_name,
+                        'last_name' => $last_name,
+                        'email' => $email,
+                        'phone' => '',
+                    ),
+                    'ticket_types' =>
+                    array (
+                        0 => 
+                        array (
+                            'uuid' => $ticket_id,
+                            'amount' => $amount, 
+                        ),
+                    ),
+                    'external_order_id' => $order_id,
+                );
+
+         } 
+
+        $json_payload = json_encode($payload);
         $curl = curl_init();
 
         curl_setopt_array($curl, array(
-        CURLOPT_URL => "$api_endpoint",
+        CURLOPT_URL => $api_endpoint,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => "",
         CURLOPT_MAXREDIRS => 10,
         CURLOPT_TIMEOUT => 30,
         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
         CURLOPT_CUSTOMREQUEST => "POST",
-        CURLOPT_POSTFIELDS => "{\n  \"event\":\"$event_id\",\n  \"address\": {\n    \"first_name\": \"$first_name\", \n    \"last_name\": \"$last_name\", \n    \"email\": \"$email\",\n    },\n  \"ticket_types\": [\n    { \n      \"uuid\": \"$ticket_id\",\t\n      \"amount\": $amount\n    }\n  ],\n  \"external_order_id\": \"$id_order\"\n}",
+        CURLOPT_POSTFIELDS => $json_payload,
         CURLOPT_HTTPHEADER => array(
-            "Authorization: $auth_token",
-            "Content-Type: application/json",
-            "cache-control: no-cache"
+        "Authorization: TOKEN ".$auth_token,
+        "Cache-Control: no-cache",
+        "Content-Type: application/json"
         ),
         ));
         
@@ -148,11 +187,17 @@ class TicketButler extends Module {
         curl_close($curl);
         
         if ($err) {
-        echo "cURL Error #:" . $err;
-        } else {
-        echo $response;
-        }
+        $curl_error_key = true;  
+        }  
+             
+         }
+
+         }
+ 
+
     }
+
+    
  
     /**
      * Show products fields
