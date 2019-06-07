@@ -81,10 +81,19 @@ class TicketButler extends Module {
         $sqlInstall = "ALTER TABLE " . _DB_PREFIX_ . "product "
                 . "ADD tbeventid VARCHAR(255) NULL,"
                 . "ADD tbticketid VARCHAR(255) NULL";
+
+        $sqlInstallorder = "ALTER TABLE " . _DB_PREFIX_ . "orders "
+                . "ADD tborder TEXT NULL";
+
+                   
+ 
+       
        
         $returnSql = Db::getInstance()->execute($sqlInstall);
         
-        return $returnSql;
+        $returnSqlorder = Db::getInstance()->execute($sqlInstallorder);
+        
+        return $returnSql && $returnSqlorder;
     }
  
     /**
@@ -94,10 +103,13 @@ class TicketButler extends Module {
     protected function _unInstallSql() {
        $sqlInstall = "ALTER TABLE " . _DB_PREFIX_ . "product "
                 . "DROP tbeventid, DROP tbticketid";
+      $sqlInstallorder = "ALTER TABLE " . _DB_PREFIX_ . "orders "
+                . "DROP tborder";
  
         $returnSql = Db::getInstance()->execute($sqlInstall); 
+        $returnSqlorder = Db::getInstance()->execute($sqlInstallorder); 
  
-        return $returnSql;
+        return $returnSql && $returnSqlorder;
     }
  
   /**
@@ -119,16 +131,22 @@ class TicketButler extends Module {
         $auth_token = Configuration::get('ticketbutler_token');
 
         $curl_error_key = false;
+   
 
 
          if (Validate::isLoadedObject($order) && $order->id_customer == $this->context->customer->id) {
-
+             
+             $tborderexist = $order->tborder;
+         
+             if(isset($tborderexist) && !empty($tborderexist)){
              $products = $order->getProducts(); 
              $customer = new Customer( $order->id_customer );
          
              $first_name = $customer->firstname; 
              $last_name = $customer->lastname;
              $email = $customer->email;
+             $ticker_submit = 0;
+             $ticker_response = array();
 
              foreach($products as $product){
  
@@ -160,7 +178,7 @@ class TicketButler extends Module {
                     'external_order_id' => $order_id,
                 );
 
-         } 
+      
 
         $json_payload = json_encode($payload);
         $curl = curl_init();
@@ -185,17 +203,30 @@ class TicketButler extends Module {
         $err = curl_error($curl);
         
         curl_close($curl);
-        
-        if ($err) {
+                 
+                   if ($err) {
         $curl_error_key = true;  
-        }  
-             
-         }
+        }   else  {
+                   $ticker_submit = 1;
+                   $ticker_response[] = $response;
+                   }
+                  
+    
+           } 
 
+       }
+         
+         if($ticker_submit == 1){
+         
+          $order->tborder = json_encode($ticker_response);
+          $order->update();
+ 
          }
  
+   }
+    } 
 
-    }
+}
 
     
  
