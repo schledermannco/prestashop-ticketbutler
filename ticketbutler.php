@@ -111,6 +111,7 @@ class TicketButler extends Module {
 
     $order_id = $params['id_order'];
     $order  = new Order($order_id);
+    $referenceNo = $order->reference;
     $api_endpoint = Configuration::get('ticketbutler_api');
     $auth_token = Configuration::get('ticketbutler_token');
     $curl_error_key = false;
@@ -151,7 +152,7 @@ class TicketButler extends Module {
                   'amount' => $amount, 
                 ),
               ),
-              'external_order_id' => $order_id,
+              'external_order_id' => $$referenceNo,
             );
 
             $json_payload = json_encode($payload);
